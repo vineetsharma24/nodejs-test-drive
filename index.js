@@ -15,8 +15,8 @@ app.post("/login", (req, res) => {
   const { username, password } = req.body;
 
   // Retrieve the username and password from app settings
-  const appUsername = process.env.USERNAME;
-  const appPassword = process.env.PASSWORD;
+  const appUsername = process.env.ADMINNAME;
+  const appPassword = process.env.ADMINPASSWORD;
 
   // Validate the username and password
   if (username === appUsername && password === appPassword) {
