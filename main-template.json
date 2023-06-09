@@ -1,0 +1,147 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "webAppName": {
+      "type": "string",
+      "defaultValue": "[concat('webApp-', uniqueString(resourceGroup().id))]",
+
+      "minLength": 2,
+      "metadata": {
+        "description": "Web app name."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Location for all resources."
+      }
+    },
+    "sku": {
+      "type": "string",
+      "defaultValue": "F1",
+      "metadata": {
+        "description": "The SKU of App Service Plan."
+      }
+    },
+    "language": {
+      "type": "string",
+      "defaultValue": "node",
+
+      "metadata": {
+        "description": "The language stack of the app."
+      }
+    },
+    "helloWorld": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "true = deploy a nodejs app."
+      }
+    },
+    "repoUrl": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Optional Git Repo URL"
+      }
+    },
+    "username": {
+      "type": "string",
+      "defaultValue": "[concat('user-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "type": "username",
+        "description": "Username for the web app."
+      }
+    },
+    "password": {
+      "type": "securestring",
+      "defaultValue": "[concat('pass-', uniqueString(resourceGroup().id))]",
+      "metadata": {
+        "type": "password",
+        "description": "Password for the web app."
+      }
+    }
+  },
+  "variables": {
+    "appServicePlanPortalName": "[concat('AppServicePlan-', parameters('webAppName'))]",
+    "gitRepoReference": {
+      "node": "https://github.com/vineetsharma24/nodejs-test-drive"
+    },
+    "gitRepoUrl": "[if(bool(parameters('helloWorld')), variables('gitRepoReference')[toLower(parameters('language'))], parameters('repoUrl'))]",
+    "configReference": {
+      "node": {
+        "appSettings": [
+          {
+            "name": "WEBSITE_NODE_DEFAULT_VERSION",
+            "value": "12.15.0"
+          },
+          {
+            "name": "ADMINNAME",
+            "value": "[parameters('username')]"
+          },
+          {
+            "name": "ADMINPASSWORD",
+            "value": "[parameters('password')]"
+          }
+        ]
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Web/serverfarms",
+      "apiVersion": "2020-06-01",
+      "name": "[variables('appServicePlanPortalName')]",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "[parameters('sku')]"
+      }
+    },
+    {
+      "type": "Microsoft.Web/sites",
+      "apiVersion": "2020-06-01",
+      "name": "[parameters('webAppName')]",
+      "location": "[parameters('location')]",
+      "dependsOn": [
+        "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanPortalName'))]"
+      ],
+      "properties": {
+        "siteConfig": "[variables('configReference')[parameters('language')]]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('appServicePlanPortalName'))]"
+      },
+      "resources": [
+        {
+          "condition": "[contains(variables('gitRepoUrl'),'http')]",
+          "type": "sourcecontrols",
+          "apiVersion": "2020-06-01",
+          "name": "web",
+          "location": "[parameters('location')]",
+          "dependsOn": [
+            "[resourceId('Microsoft.Web/sites', parameters('webAppName'))]"
+          ],
+          "properties": {
+            "repoUrl": "[variables('gitRepoUrl')]",
+            "branch": "main",
+            "isManualIntegration": true
+          }
+        }
+      ]
+    }
+  ],
+  "outputs": {
+    "webappurl": {
+      "type": "string",
+      "value": "[concat('http://',parameters('webAppName'),'.azurewebsites.net/')]"
+    },
+    "User Name": {
+      "type": "string",
+      "value": "[parameters('username')]"
+    },
+    "Password": {
+      "type": "string",
+      "value": "[parameters('password')]"
+    }
+  }
+}
